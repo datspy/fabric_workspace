@@ -1,0 +1,58 @@
+{
+    "name": "Fabric Data Engineering",
+    "dockerComposeFile": ["./docker-compose.yaml"],
+    "workspaceFolder": "/code",
+    "service": "dev-synapse",
+
+    // Spark UI ports
+    "forwardPorts": [4040, 4041],
+    "portsAttributes": {
+        "4040": { "label": "Spark UI", "onAutoForward": "notify" },
+        "4041": { "label": "Spark UI (secondary)", "onAutoForward": "notify" }
+    },
+
+    "customizations": {
+        "vscode": {
+            "settings": {
+                // Python / Conda
+                "python.defaultInterpreterPath": "/opt/conda/bin/python",
+
+                // Terminal
+                "terminal.integrated.profiles.linux": {
+                    "bash": { "path": "/bin/bash" }
+                },
+                "terminal.integrated.defaultProfile.linux": "bash",
+
+                // Linting
+                "python.linting.enabled": true,
+                "python.linting.pylintEnabled": true,
+
+                // Git
+                "git.autofetch": true,
+                "git.enableSmartCommit": true
+            },
+            "extensions": [
+                // ── Fabric ───────────────────────────────────
+                "SynapseVSCode.synapse",
+
+                // ── Core Python / Jupyter ────────────────────
+                "ms-python.python",
+                "ms-toolsai.jupyter",
+
+                // ── Git & GitHub ─────────────────────────────
+                "GitHub.vscode-pull-request-github",
+                "eamodio.gitlens",
+                "mhutchie.git-graph",
+
+                // ── Productivity ─────────────────────────────
+                "esbenp.prettier-vscode",
+                "redhat.vscode-yaml",
+                "ms-python.black-formatter"
+            ]
+        }
+    },
+
+    // Install git inside the container (if not already present) and
+    // configure safe directory so Git works with the mounted volume.
+    "postCreateCommand": "git config --global --add safe.directory /code && echo '✅ Dev container ready — run Fabric Data Engineering: Sign In to connect.'"
+}

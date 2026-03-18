@@ -1,0 +1,10 @@
+services:
+  dev-synapse:
+    image: mcr.microsoft.com/msfabric/synapsevscode/fabric-synapse-vscode:latest
+    volumes:
+      # Mount the project root into the container
+      - ..:/code:cached
+    command: sleep infinity
+    environment:
+      # Ensure Git uses the correct line endings inside the container
+      - GIT_TERMINAL_PROMPT=1
