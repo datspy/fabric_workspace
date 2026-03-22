@@ -4,6 +4,20 @@ https://learn.microsoft.com/en-us/azure/devops/integrate/get-started/authenticat
 Fabric Notebook Selection Guide
 https://learn.microsoft.com/en-us/fabric/data-engineering/fabric-notebook-selection-guide
 
+Local PySpark Development
+https://www.linkedin.com/pulse/pyspark-setup-local-fabric-developemnt-s%C3%A6bo-davtians-ezaqe/
+
+Apache Airflow in Fabric
+
+https://blog.fabric.microsoft.com/de-DE/blog/introducing-data-workflows-in-microsoft-fabric/
+
+https://www.youtube.com/watch?v=ykF3HfK8-6k
+
+
+CI-CD in Fabric
+https://blog.fabric.microsoft.com/en-us/blog/optimizing-for-ci-cd-in-microsoft-fabric?ft=All
+
+
 
 Prefect Serverless
 https://www.prefect.io/blog/introducing-two-new-self-serve-plans-for-prefect-cloud#introducing-prefect-serverless
