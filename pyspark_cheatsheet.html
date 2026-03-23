@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PySpark Cheat Sheet — Microsoft Fabric</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0d0f14;
+    --surface:   #13161e;
+    --card:      #181c27;
+    --border:    #252b3b;
+    --accent1:   #00c2ff;   /* cyan  */
+    --accent2:   #f97316;   /* orange */
+    --accent3:   #a78bfa;   /* violet */
+    --accent4:   #34d399;   /* emerald */
+    --accent5:   #fb7185;   /* rose */
+    --accent6:   #fbbf24;   /* amber */
+    --text:      #e2e8f0;
+    --muted:     #64748b;
+    --code-bg:   #0a0c11;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 32px 24px 64px;
+  }
+
+  /* ── Header ──────────────────────────────── */
+  header {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 48px;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 0;
+    width: 220px; height: 2px;
+    background: linear-gradient(90deg, var(--accent1), transparent);
+  }
+  .header-badge {
+    background: var(--accent1);
+    color: var(--bg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    padding: 4px 10px;
+    border-radius: 4px;
+    margin-top: 6px;
+    white-space: nowrap;
+  }
+  h1 {
+    font-size: clamp(26px, 4vw, 42px);
+    font-weight: 800;
+    letter-spacing: -.02em;
+    line-height: 1.1;
+  }
+  h1 span { color: var(--accent1); }
+  .subtitle {
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    margin-top: 6px;
+    letter-spacing: .05em;
+  }
+
+  /* ── Nav pills ───────────────────────────── */
+  .nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 40px;
+  }
+  .nav a {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-decoration: none;
+    padding: 5px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    transition: all .2s;
+  }
+  .nav a:hover { border-color: var(--accent1); color: var(--accent1); }
+  .nav a.c1 { border-color: var(--accent1); color: var(--accent1); }
+  .nav a.c2 { border-color: var(--accent2); color: var(--accent2); }
+  .nav a.c3 { border-color: var(--accent3); color: var(--accent3); }
+  .nav a.c4 { border-color: var(--accent4); color: var(--accent4); }
+  .nav a.c5 { border-color: var(--accent5); color: var(--accent5); }
+  .nav a.c6 { border-color: var(--accent6); color: var(--accent6); }
+
+  /* ── Sections ────────────────────────────── */
+  .section {
+    margin-bottom: 52px;
+    scroll-margin-top: 20px;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .section-number {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--bg);
+    padding: 3px 9px;
+    border-radius: 4px;
+    letter-spacing: .08em;
+  }
+  .s1 .section-number { background: var(--accent1); }
+  .s2 .section-number { background: var(--accent2); }
+  .s3 .section-number { background: var(--accent3); }
+  .s4 .section-number { background: var(--accent4); }
+  .s5 .section-number { background: var(--accent5); }
+  .s6 .section-number { background: var(--accent6); }
+
+  h2 {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -.01em;
+  }
+  .s1 h2 { color: var(--accent1); }
+  .s2 h2 { color: var(--accent2); }
+  .s3 h2 { color: var(--accent3); }
+  .s4 h2 { color: var(--accent4); }
+  .s5 h2 { color: var(--accent5); }
+  .s6 h2 { color: var(--accent6); }
+
+  /* ── Cards grid ──────────────────────────── */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 14px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: border-color .2s, transform .15s;
+  }
+  .card:hover { transform: translateY(-2px); }
+  .s1 .card:hover { border-color: var(--accent1); }
+  .s2 .card:hover { border-color: var(--accent2); }
+  .s3 .card:hover { border-color: var(--accent3); }
+  .s4 .card:hover { border-color: var(--accent4); }
+  .s5 .card:hover { border-color: var(--accent5); }
+  .s6 .card:hover { border-color: var(--accent6); }
+
+  .card-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: 8px 14px 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .s1 .card-label { color: var(--accent1); }
+  .s2 .card-label { color: var(--accent2); }
+  .s3 .card-label { color: var(--accent3); }
+  .s4 .card-label { color: var(--accent4); }
+  .s5 .card-label { color: var(--accent5); }
+  .s6 .card-label { color: var(--accent6); }
+
+  .card-desc {
+    font-size: 12px;
+    color: var(--muted);
+    padding: 8px 14px 4px;
+    line-height: 1.5;
+  }
+
+  pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    background: var(--code-bg);
+    padding: 12px 14px;
+    overflow-x: auto;
+    line-height: 1.7;
+    color: #c9d1d9;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Syntax highlighting via spans */
+  .kw  { color: #ff7b72; }   /* keyword  */
+  .fn  { color: #d2a8ff; }   /* function */
+  .st  { color: #a5d6ff; }   /* string   */
+  .cm  { color: #484f58; font-style: italic; }  /* comment */
+  .nu  { color: #f2cc60; }   /* number   */
+  .op  { color: #79c0ff; }   /* operator / method */
+  .cl  { color: #ffa657; }   /* class    */
+
+  /* ── Wide card ───────────────────────────── */
+  .card.wide { grid-column: 1 / -1; }
+
+  /* ── Tip box ─────────────────────────────── */
+  .tip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent6);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-bottom: 16px;
+    line-height: 1.6;
+  }
+  .tip strong { color: var(--accent6); }
+
+  /* ── Divider ─────────────────────────────── */
+  hr { border: none; border-top: 1px solid var(--border); margin: 8px 0 16px; }
+
+  footer {
+    border-top: 1px solid var(--border);
+    margin-top: 60px;
+    padding-top: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: .04em;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════ HEADER -->
+<header>
+  <div>
+    <h1>PySpark <span>Cheat Sheet</span></h1>
+    <p class="subtitle">// Microsoft Fabric · Data Engineering · Production Patterns</p>
+  </div>
+  <div class="header-badge">FABRIC · SPARK 3.x</div>
+</header>
+
+<!-- ═══════════════════════════════════════════ NAV -->
+<nav class="nav">
+  <a href="#fabric"      class="c1">01 · Fabric Setup</a>
+  <a href="#exploration" class="c2">02 · Data Exploration</a>
+  <a href="#transform"   class="c4">03 · Transformations</a>
+  <a href="#logging"     class="c3">04 · Error Logging</a>
+  <a href="#sql"         class="c5">05 · SQL Warehouse</a>
+  <a href="#perf"        class="c6">06 · Performance</a>
+</nav>
+
+<!-- ═══════════════════════════════════════════ S1: FABRIC SETUP -->
+<section class="section s1" id="fabric">
+  <div class="section-header">
+    <span class="section-number">01</span>
+    <h2>Data Engineering in Microsoft Fabric</h2>
+  </div>
+
+  <div class="tip"><strong>Note:</strong> In Fabric notebooks, <code>spark</code> and <code>mssparkutils</code> are pre-initialised — you don't need to create a SparkSession manually. The Lakehouse is mounted and accessible via <code>Files/</code> and <code>Tables/</code> paths.</div>
+
+  <div class="grid">
+
+    <div class="card">
+      <div class="card-label">Read from Lakehouse — Delta Table</div>
+      <div class="card-desc">Read a managed Delta table registered in the Lakehouse.</div>
+      <pre><span class="kw">df</span> = spark.<span class="op">read</span>.<span class="op">format</span>(<span class="st">"delta"</span>).<span class="op">load</span>(
+    <span class="st">"Tables/sales_orders"</span>
+)
+<span class="cm"># OR using SparkSQL shorthand</span>
+<span class="kw">df</span> = spark.<span class="op">table</span>(<span class="st">"sales_orders"</span>)</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Read from Lakehouse — Files (CSV / Parquet / JSON)</div>
+      <div class="card-desc">Read raw files from the Files section of the Lakehouse.</div>
+      <pre><span class="cm"># CSV</span>
+<span class="kw">df</span> = spark.<span class="op">read</span>.<span class="op">option</span>(<span class="st">"header"</span>, <span class="st">"true"</span>) \
+    .<span class="op">option</span>(<span class="st">"inferSchema"</span>, <span class="st">"true"</span>) \
+    .<span class="op">csv</span>(<span class="st">"Files/raw/sales.csv"</span>)
+<span class="cm"># Parquet</span>
+<span class="kw">df</span> = spark.<span class="op">read</span>.<span class="op">parquet</span>(<span class="st">"Files/raw/sales/"</span>)
+<span class="cm"># JSON</span>
+<span class="kw">df</span> = spark.<span class="op">read</span>.<span class="op">json</span>(<span class="st">"Files/raw/events.json"</span>)</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Write to Lakehouse — Delta Table (Overwrite / Append)</div>
+      <div class="card-desc">Persist a DataFrame as a managed Delta table.</div>
+      <pre><span class="cm"># Overwrite entire table</span>
+<span class="kw">df</span>.<span class="op">write</span>.<span class="op">format</span>(<span class="st">"delta"</span>) \
+    .<span class="op">mode</span>(<span class="st">"overwrite"</span>) \
+    .<span class="op">option</span>(<span class="st">"overwriteSchema"</span>, <span class="st">"true"</span>) \
+    .<span class="op">saveAsTable</span>(<span class="st">"gold_sales"</span>)
+<span class="cm"># Append new rows</span>
+<span class="kw">df</span>.<span class="op">write</span>.<span class="op">format</span>(<span class="st">"delta"</span>) \
+    .<span class="op">mode</span>(<span class="st">"append"</span>) \
+    .<span class="op">saveAsTable</span>(<span class="st">"gold_sales"</span>)</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Write Partitioned Delta Table</div>
+      <div class="card-desc">Partition on a column for faster predicate pushdown on large tables.</div>
+      <pre><span class="kw">df</span>.<span class="op">write</span>.<span class="op">format</span>(<span class="st">"delta"</span>) \
+    .<span class="op">mode</span>(<span class="st">"overwrite"</span>) \
+    .<span class="op">partitionBy</span>(<span class="st">"year"</span>, <span class="st">"month"</span>) \
+    .<span class="op">saveAsTable</span>(<span class="st">"gold_sales_partitioned"</span>)</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Delta MERGE — Upsert (SCD1)</div>
+      <div class="card-desc">Merge incoming data into an existing Delta table (update or insert).</div>
+      <pre><span class="kw">from</span> delta.<span class="op">tables</span> <span class="kw">import</span> <span class="cl">DeltaTable</span>
+
+<span class="kw">target</span> = <span class="cl">DeltaTable</span>.<span class="op">forName</span>(spark, <span class="st">"gold_sales"</span>)
+
+<span class="kw">target</span>.<span class="op">alias</span>(<span class="st">"t"</span>).<span class="op">merge</span>(
+    df_updates.<span class="op">alias</span>(<span class="st">"s"</span>),
+    <span class="st">"t.order_id = s.order_id"</span>
+).<span class="op">whenMatchedUpdateAll</span>() \
+ .<span class="op">whenNotMatchedInsertAll</span>() \
+ .<span class="op">execute</span>()</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Delta Table — Time Travel</div>
+      <div class="card-desc">Read a previous version of a Delta table for auditing or rollback.</div>
+      <pre><span class="cm"># By version number</span>
+<span class="kw">df</span> = spark.<span class="op">read</span>.<span class="op">format</span>(<span class="st">"delta"</span>) \
+    .<span class="op">option</span>(<span class="st">"versionAsOf"</span>, <span class="nu">3</span>) \
+    .<span class="op">load</span>(<span class="st">"Tables/gold_sales"</span>)
+<span class="cm"># By timestamp</span>
+<span class="kw">df</span> = spark.<span class="op">read</span>.<span class="op">format</span>(<span class="st">"delta"</span>) \
+    .<span class="op">option</span>(<span class="st">"timestampAsOf"</span>, <span class="st">"2025-01-01"</span>) \
+    .<span class="op">load</span>(<span class="st">"Tables/gold_sales"</span>)</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Delta Table — History & Optimize</div>
+      <div class="card-desc">Inspect table history and compact small files for query performance.</div>
+      <pre><span class="kw">from</span> delta.<span class="op">tables</span> <span class="kw">import</span> <span class="cl">DeltaTable</span>
+
+<span class="kw">dt</span> = <span class="cl">DeltaTable</span>.<span class="op">forName</span>(spark, <span class="st">"gold_sales"</span>)
+<span class="kw">dt</span>.<span class="op">history</span>().<span class="op">show</span>(<span class="nu">10</span>, truncate=<span class="kw">False</span>)
+
+<span class="cm"># Compact small files + Z-order on key column</span>
+spark.<span class="op">sql</span>(<span class="st">"""
+  OPTIMIZE gold_sales
+  ZORDER BY (order_id)
+"""</span>)
+<span class="cm"># Remove old snapshots</span>
+<span class="kw">dt</span>.<span class="op">vacuum</span>(<span class="nu">168</span>)  <span class="cm"># retain 7 days</span></pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">mssparkutils — File Operations</div>
+      <div class="card-desc">Fabric's built-in utility for file management within the Lakehouse.</div>
+      <pre><span class="cm"># List files</span>
+mssparkutils.<span class="op">fs</span>.<span class="op">ls</span>(<span class="st">"Files/raw/"</span>)
+<span class="cm"># Copy file</span>
+mssparkutils.<span class="op">fs</span>.<span class="op">cp</span>(<span class="st">"Files/raw/a.csv"</span>, <span class="st">"Files/archive/a.csv"</span>)
+<span class="cm"># Move file</span>
+mssparkutils.<span class="op">fs</span>.<span class="op">mv</span>(<span class="st">"Files/raw/a.csv"</span>, <span class="st">"Files/done/a.csv"</span>)
+<span class="cm"># Delete file/folder</span>
+mssparkutils.<span class="op">fs</span>.<span class="op">rm</span>(<span class="st">"Files/raw/old/"</span>, recurse=<span class="kw">True</span>)
+<span class="cm"># Check existence</span>
+mssparkutils.<span class="op">fs</span>.<span class="op">exists</span>(<span class="st">"Files/raw/a.csv"</span>)</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Notebook Parameters (via Pipeline)</div>
+      <div class="card-desc">Accept parameters injected by a Fabric Data Pipeline at runtime.</div>
+      <pre>mssparkutils.<span class="op">runtime</span>.<span class="op">context</span>   <span class="cm"># inspect run context</span>
+
+<span class="cm"># Declare a widget parameter</span>
+mssparkutils.<span class="op">widgets</span>.<span class="op">text</span>(
+    <span class="st">"run_date"</span>, <span class="st">"2025-01-01"</span>, <span class="st">"Run Date"</span>
+)
+<span class="kw">run_date</span> = mssparkutils.<span class="op">widgets</span>.<span class="op">get</span>(<span class="st">"run_date"</span>)</pre>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════ S2: DATA EXPLORATION -->
+<section class="section s2" id="exploration">
+  <div class="section-header">
+    <span class="section-number">02</span>
+    <h2>Data Exploration</h2>
+  </div>
+
+  <div class="grid">
+
+    <div class="card">
+      <div class="card-label">Schema & Preview</div>
+      <div class="card-desc">Quickly understand the shape and content of a DataFrame.</div>
+      <pre>df.<span class="op">printSchema</span>()          <span class="cm"># tree of column types</span>
+df.<span class="op">dtypes</span>                  <span class="cm"># list of (col, dtype) tuples</span>
+df.<span class="op">columns</span>                 <span class="cm"># list of column names</span>
+df.<span class="op">show</span>(<span class="nu">20</span>, truncate=<span class="kw">False</span>) <span class="cm"># display rows</span>
+df.<span class="op">display</span>()               <span class="cm"># Fabric rich tabular display</span>
+df.<span class="op">count</span>()                 <span class="cm"># total row count</span>
+df.<span class="op">limit</span>(<span class="nu">5</span>).<span class="op">toPandas</span>()     <span class="cm"># peek as Pandas</span></pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Descriptive Statistics</div>
+      <div class="card-desc">Summary stats for numeric and string columns.</div>
+      <pre>df.<span class="op">describe</span>().<span class="op">show</span>()       <span class="cm"># count,mean,std,min,max</span>
+df.<span class="op">summary</span>().<span class="op">show</span>()        <span class="cm"># + 25/50/75 percentiles</span>
+
+<span class="cm"># Stats for specific columns only</span>
+df.<span class="op">describe</span>(<span class="st">"amount"</span>, <span class="st">"qty"</span>).<span class="op">show</span>()
+
+<span class="cm"># Approximate quantiles</span>
+df.<span class="op">approxQuantile</span>(
+    <span class="st">"amount"</span>, [<span class="nu">0.25</span>, <span class="nu">0.5</span>, <span class="nu">0.75</span>], <span class="nu">0.01</span>
+)</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Null & Duplicate Analysis</div>
+      <div class="card-desc">Identify data quality issues before transforming.</div>
+      <pre><span class="kw">from</span> pyspark.<span class="op">sql</span> <span class="kw">import</span> functions <span class="kw">as</span> F
+
+<span class="cm"># Count nulls per column</span>
+df.<span class="op">select</span>([
+    F.<span class="op">count</span>(F.<span class="op">when</span>(F.<span class="op">col</span>(c).<span class="op">isNull</span>(), c))
+     .<span class="op">alias</span>(c) <span class="kw">for</span> c <span class="kw">in</span> df.<span class="op">columns</span>
+]).<span class="op">show</span>()
+
+<span class="cm"># Duplicate row count</span>
+df.<span class="op">count</span>() - df.<span class="op">dropDuplicates</span>().<span class="op">count</span>()
+
+<span class="cm"># Duplicate on key columns</span>
+df.<span class="op">groupBy</span>(<span class="st">"order_id"</span>).<span class="op">count</span>() \
+  .<span class="op">filter</span>(<span class="st">"count > 1"</span>).<span class="op">show</span>()</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Value Distribution & Frequency</div>
+      <div class="card-desc">Understand cardinality and distribution of categorical columns.</div>
+      <pre><span class="cm"># Distinct values + count</span>
+df.<span class="op">select</span>(<span class="st">"status"</span>).<span class="op">distinct</span>().<span class="op">show</span>()
+df.<span class="op">agg</span>(F.<span class="op">countDistinct</span>(<span class="st">"customer_id"</span>)).<span class="op">show</span>()
+
+<span class="cm"># Top N most frequent values</span>
+df.<span class="op">groupBy</span>(<span class="st">"status"</span>) \
+  .<span class="op">count</span>() \
+  .<span class="op">orderBy</span>(F.<span class="op">desc</span>(<span class="st">"count"</span>)) \
+  .<span class="op">show</span>(<span class="nu">10</span>)
+
+<span class="cm"># Crosstab between two columns</span>
+df.<span class="op">crosstab</span>(<span class="st">"status"</span>, <span class="st">"region"</span>).<span class="op">show</span>()</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Filter & Slice</div>
+      <div class="card-desc">Isolate subsets of data for focused investigation.</div>
+      <pre><span class="cm"># Filter with column expression</span>
+df.<span class="op">filter</span>(F.<span class="op">col</span>(<span class="st">"amount"</span>) > <span class="nu">1000</span>)
+df.<span class="op">where</span>(<span class="st">"status = 'FAILED'"</span>)
+
+<span class="cm"># Multiple conditions</span>
+df.<span class="op">filter</span>(
+    (F.<span class="op">col</span>(<span class="st">"region"</span>) == <span class="st">"IN"</span>) &
+    F.<span class="op">col</span>(<span class="st">"amount"</span>).<span class="op">between</span>(<span class="nu">100</span>, <span class="nu">5000</span>)
+)
+
+<span class="cm"># NULL checks</span>
+df.<span class="op">filter</span>(F.<span class="op">col</span>(<span class="st">"device_id"</span>).<span class="op">isNull</span>())
+df.<span class="op">filter</span>(F.<span class="op">col</span>(<span class="st">"device_id"</span>).<span class="op">isNotNull</span>())</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Aggregation & Grouping</div>
+      <div class="card-desc">Summarise data by dimensions.</div>
+      <pre>df.<span class="op">groupBy</span>(<span class="st">"region"</span>, <span class="st">"status"</span>).<span class="op">agg</span>(
+    F.<span class="op">count</span>(<span class="st">"*"</span>).<span class="op">alias</span>(<span class="st">"row_count"</span>),
+    F.<span class="op">sum</span>(<span class="st">"amount"</span>).<span class="op">alias</span>(<span class="st">"total_amount"</span>),
+    F.<span class="op">avg</span>(<span class="st">"amount"</span>).<span class="op">alias</span>(<span class="st">"avg_amount"</span>),
+    F.<span class="op">max</span>(<span class="st">"created_at"</span>).<span class="op">alias</span>(<span class="st">"latest"</span>),
+    F.<span class="op">min</span>(<span class="st">"amount"</span>).<span class="op">alias</span>(<span class="st">"min_amount"</span>)
+).<span class="op">show</span>()</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Sort & Rank</div>
+      <div class="card-desc">Order results and assign row ranks with window functions.</div>
+      <pre><span class="kw">from</span> pyspark.<span class="op">sql</span>.<span class="op">window</span> <span class="kw">import</span> <span class="cl">Window</span>
+
+df.<span class="op">orderBy</span>(F.<span class="op">desc</span>(<span class="st">"amount"</span>)).<span class="op">show</span>(<span class="nu">10</span>)
+
+<span class="cm"># Dense rank within a partition</span>
+<span class="kw">w</span> = <span class="cl">Window</span>.<span class="op">partitionBy</span>(<span class="st">"region"</span>) \
+           .<span class="op">orderBy</span>(F.<span class="op">desc</span>(<span class="st">"amount"</span>))
+df.<span class="op">withColumn</span>(<span class="st">"rank"</span>, F.<span class="op">dense_rank</span>().<span class="op">over</span>(w))</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Date & Timestamp Exploration</div>
+      <div class="card-desc">Parse, extract, and filter on date/time columns.</div>
+      <pre>df.<span class="op">withColumn</span>(<span class="st">"date"</span>, F.<span class="op">to_date</span>(<span class="st">"created_at"</span>)) \
+  .<span class="op">withColumn</span>(<span class="st">"yr"</span>,   F.<span class="op">year</span>(<span class="st">"created_at"</span>)) \
+  .<span class="op">withColumn</span>(<span class="st">"mo"</span>,   F.<span class="op">month</span>(<span class="st">"created_at"</span>)) \
+  .<span class="op">withColumn</span>(<span class="st">"wk"</span>,   F.<span class="op">weekofyear</span>(<span class="st">"created_at"</span>))
+
+<span class="cm"># Days between two dates</span>
+F.<span class="op">datediff</span>(F.<span class="op">current_date</span>(), F.<span class="op">col</span>(<span class="st">"created_at"</span>))
+<span class="cm"># Filter last 30 days</span>
+df.<span class="op">filter</span>(F.<span class="op">col</span>(<span class="st">"created_at"</span>) >= F.<span class="op">date_sub</span>(F.<span class="op">current_date</span>(), <span class="nu">30</span>))</pre>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════ S3: TRANSFORMATIONS -->
+<section class="section s4" id="transform">
+  <div class="section-header">
+    <span class="section-number">03</span>
+    <h2>Common Transformations</h2>
+  </div>
+
+  <div class="grid">
+
+    <div class="card">
+      <div class="card-label">Add / Rename / Drop Columns</div>
+      <pre>df.<span class="op">withColumn</span>(<span class="st">"tax"</span>, F.<span class="op">col</span>(<span class="st">"amount"</span>) * <span class="nu">0.18</span>)
+df.<span class="op">withColumnRenamed</span>(<span class="st">"old_name"</span>, <span class="st">"new_name"</span>)
+df.<span class="op">drop</span>(<span class="st">"temp_col"</span>, <span class="st">"junk_col"</span>)
+<span class="cm"># Select & alias in one step</span>
+df.<span class="op">select</span>(
+    F.<span class="op">col</span>(<span class="st">"order_id"</span>),
+    F.<span class="op">col</span>(<span class="st">"amount"</span>).<span class="op">alias</span>(<span class="st">"revenue"</span>),
+    F.<span class="op">lit</span>(<span class="st">"IN"</span>).<span class="op">alias</span>(<span class="st">"country"</span>)
+)</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Conditional Logic (when / otherwise)</div>
+      <pre>df.<span class="op">withColumn</span>(<span class="st">"tier"</span>,
+    F.<span class="op">when</span>(F.<span class="op">col</span>(<span class="st">"amount"</span>) > <span class="nu">10000</span>, <span class="st">"Gold"</span>)
+     .<span class="op">when</span>(F.<span class="op">col</span>(<span class="st">"amount"</span>) > <span class="nu">5000</span>,  <span class="st">"Silver"</span>)
+     .<span class="op">otherwise</span>(<span class="st">"Bronze"</span>)
+)</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Handle Nulls</div>
+      <pre><span class="cm"># Drop rows with any null</span>
+df.<span class="op">dropna</span>()
+<span class="cm"># Drop rows where specific cols are null</span>
+df.<span class="op">dropna</span>(subset=[<span class="st">"order_id"</span>, <span class="st">"amount"</span>])
+<span class="cm"># Fill nulls</span>
+df.<span class="op">fillna</span>({<span class="st">"amount"</span>: <span class="nu">0</span>, <span class="st">"status"</span>: <span class="st">"UNKNOWN"</span>})
+<span class="cm"># Coalesce (first non-null)</span>
+df.<span class="op">withColumn</span>(<span class="st">"val"</span>, F.<span class="op">coalesce</span>(<span class="st">"col_a"</span>, <span class="st">"col_b"</span>))</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Joins</div>
+      <pre><span class="cm"># Inner join</span>
+df1.<span class="op">join</span>(df2, on=<span class="st">"order_id"</span>, how=<span class="st">"inner"</span>)
+<span class="cm"># Left join with explicit condition</span>
+df1.<span class="op">join</span>(df2,
+    df1.<span class="op">order_id</span> == df2.<span class="op">order_id</span>,
+    how=<span class="st">"left"</span>
+)
+<span class="cm"># Anti-join (rows in df1 NOT in df2)</span>
+df1.<span class="op">join</span>(df2, on=<span class="st">"order_id"</span>, how=<span class="st">"left_anti"</span>)</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">String Functions</div>
+      <pre>F.<span class="op">upper</span>(<span class="st">"name"</span>)         <span class="cm"># uppercase</span>
+F.<span class="op">lower</span>(<span class="st">"name"</span>)         <span class="cm"># lowercase</span>
+F.<span class="op">trim</span>(<span class="st">"name"</span>)          <span class="cm"># strip whitespace</span>
+F.<span class="op">regexp_replace</span>(<span class="st">"col"</span>, <span class="st">r"\s+"</span>, <span class="st">"_"</span>)
+F.<span class="op">split</span>(F.<span class="op">col</span>(<span class="st">"tags"</span>), <span class="st">","</span>)  <span class="cm"># → ArrayType</span>
+F.<span class="op">concat_ws</span>(<span class="st">"-"</span>, <span class="st">"yr"</span>, <span class="st">"mo"</span>, <span class="st">"dy"</span>)
+F.<span class="op">col</span>(<span class="st">"email"</span>).<span class="op">contains</span>(<span class="st">"@gmail"</span>)
+F.<span class="op">col</span>(<span class="st">"code"</span>).<span class="op">startswith</span>(<span class="st">"IN"</span>)</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Type Casting</div>
+      <pre><span class="kw">from</span> pyspark.<span class="op">sql</span>.<span class="op">types</span> <span class="kw">import</span> <span class="cl">IntegerType</span>, <span class="cl">DoubleType</span>
+
+df.<span class="op">withColumn</span>(<span class="st">"qty"</span>,
+    F.<span class="op">col</span>(<span class="st">"qty"</span>).<span class="op">cast</span>(<span class="cl">IntegerType</span>()))
+df.<span class="op">withColumn</span>(<span class="st">"price"</span>,
+    F.<span class="op">col</span>(<span class="st">"price"</span>).<span class="op">cast</span>(<span class="cl">DoubleType</span>()))
+<span class="cm"># Or use string shorthand</span>
+F.<span class="op">col</span>(<span class="st">"amount"</span>).<span class="op">cast</span>(<span class="st">"double"</span>)</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Window Functions</div>
+      <pre><span class="kw">from</span> pyspark.<span class="op">sql</span>.<span class="op">window</span> <span class="kw">import</span> <span class="cl">Window</span>
+
+<span class="kw">w</span> = <span class="cl">Window</span>.<span class="op">partitionBy</span>(<span class="st">"customer_id"</span>) \
+           .<span class="op">orderBy</span>(<span class="st">"order_date"</span>)
+
+df.<span class="op">withColumn</span>(<span class="st">"running_total"</span>,
+    F.<span class="op">sum</span>(<span class="st">"amount"</span>).<span class="op">over</span>(w)) \
+  .<span class="op">withColumn</span>(<span class="st">"prev_order"</span>,
+    F.<span class="op">lag</span>(<span class="st">"amount"</span>, <span class="nu">1</span>).<span class="op">over</span>(w)) \
+  .<span class="op">withColumn</span>(<span class="st">"row_num"</span>,
+    F.<span class="op">row_number</span>().<span class="op">over</span>(w))</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Deduplicate — SCD2 Pattern</div>
+      <div class="card-desc">Keep latest record per key using row_number.</div>
+      <pre><span class="kw">w</span> = <span class="cl">Window</span>.<span class="op">partitionBy</span>(<span class="st">"order_id"</span>) \
+           .<span class="op">orderBy</span>(F.<span class="op">desc</span>(<span class="st">"updated_at"</span>))
+
+<span class="kw">df_deduped</span> = df \
+    .<span class="op">withColumn</span>(<span class="st">"rn"</span>, F.<span class="op">row_number</span>().<span class="op">over</span>(w)) \
+    .<span class="op">filter</span>(F.<span class="op">col</span>(<span class="st">"rn"</span>) == <span class="nu">1</span>) \
+    .<span class="op">drop</span>(<span class="st">"rn"</span>)</pre>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════ S4: ERROR LOGGING -->
+<section class="section s3" id="logging">
+  <div class="section-header">
+    <span class="section-number">04</span>
+    <h2>Error Logging</h2>
+  </div>
+
+  <div class="tip"><strong>Best Practice:</strong> In Fabric pipelines, use a structured try/except wrapper on every notebook cell that writes data. Log errors to a Delta error table so pipeline failures are queryable and auditable without digging through Spark logs.</div>
+
+  <div class="grid">
+
+    <div class="card">
+      <div class="card-label">Python logging — Standard Setup</div>
+      <div class="card-desc">Structured logging that appears in the notebook output and Fabric Monitor.</div>
+      <pre><span class="kw">import</span> logging
+
+logging.<span class="op">basicConfig</span>(
+    level=logging.<span class="op">INFO</span>,
+    format=<span class="st">"%(asctime)s | %(levelname)s | %(message)s"</span>,
+    datefmt=<span class="st">"%Y-%m-%d %H:%M:%S"</span>
+)
+<span class="kw">logger</span> = logging.<span class="op">getLogger</span>(<span class="st">"fabric_pipeline"</span>)
+
+logger.<span class="op">info</span>(<span class="st">"Starting load for run_date=%s"</span>, run_date)
+logger.<span class="op">warning</span>(<span class="st">"Null device_ids found: %d"</span>, null_count)
+logger.<span class="op">error</span>(<span class="st">"Write failed for table: %s"</span>, table_name)</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Try / Except — Per-Step Wrapper</div>
+      <div class="card-desc">Capture the exact step, error message, and stack trace.</div>
+      <pre><span class="kw">import</span> traceback
+
+<span class="kw">try</span>:
+    df.<span class="op">write</span>.<span class="op">format</span>(<span class="st">"delta"</span>) \
+        .<span class="op">mode</span>(<span class="st">"append"</span>) \
+        .<span class="op">saveAsTable</span>(<span class="st">"gold_sales"</span>)
+    logger.<span class="op">info</span>(<span class="st">"Write successful"</span>)
+<span class="kw">except</span> <span class="cl">Exception</span> <span class="kw">as</span> e:
+    logger.<span class="op">error</span>(<span class="st">"Write failed: %s"</span>, <span class="fn">str</span>(e))
+    logger.<span class="op">debug</span>(traceback.<span class="op">format_exc</span>())
+    <span class="kw">raise</span>  <span class="cm"># re-raise to fail the pipeline</span></pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Delta Error Log Table</div>
+      <div class="card-desc">Write structured errors to a Delta table for audit and alerting.</div>
+      <pre><span class="kw">from</span> pyspark.<span class="op">sql</span> <span class="kw">import</span> <span class="cl">Row</span>
+<span class="kw">from</span> datetime <span class="kw">import</span> datetime
+
+<span class="kw">def</span> <span class="fn">log_error</span>(pipeline, step, error, run_date):
+    <span class="kw">row</span> = [<span class="cl">Row</span>(
+        pipeline_name = pipeline,
+        step_name     = step,
+        error_message = <span class="fn">str</span>(error)[:<span class="nu">2000</span>],
+        run_date      = run_date,
+        logged_at     = datetime.<span class="op">utcnow</span>().<span class="op">isoformat</span>()
+    )]
+    spark.<span class="op">createDataFrame</span>(<span class="kw">row</span>) \
+         .<span class="op">write</span>.<span class="op">format</span>(<span class="st">"delta"</span>) \
+         .<span class="op">mode</span>(<span class="st">"append"</span>) \
+         .<span class="op">saveAsTable</span>(<span class="st">"pipeline_error_log"</span>)</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Row-Level Quarantine Pattern</div>
+      <div class="card-desc">Separate bad rows from good rows instead of failing the entire load.</div>
+      <pre><span class="cm"># Define validation rule</span>
+<span class="kw">valid_df</span>   = df.<span class="op">filter</span>(F.<span class="op">col</span>(<span class="st">"amount"</span>) > <span class="nu">0</span>)
+<span class="kw">invalid_df</span> = df.<span class="op">filter</span>(F.<span class="op">col</span>(<span class="st">"amount"</span>) <= <span class="nu">0</span>) \
+               .<span class="op">withColumn</span>(<span class="st">"reject_reason"</span>,
+                   F.<span class="op">lit</span>(<span class="st">"amount must be > 0"</span>)) \
+               .<span class="op">withColumn</span>(<span class="st">"logged_at"</span>,
+                   F.<span class="op">current_timestamp</span>())
+
+<span class="kw">valid_df</span>.<span class="op">write</span>.<span class="op">format</span>(<span class="st">"delta"</span>).<span class="op">mode</span>(<span class="st">"append"</span>) \
+         .<span class="op">saveAsTable</span>(<span class="st">"gold_sales"</span>)
+<span class="kw">invalid_df</span>.<span class="op">write</span>.<span class="op">format</span>(<span class="st">"delta"</span>).<span class="op">mode</span>(<span class="st">"append"</span>) \
+           .<span class="op">saveAsTable</span>(<span class="st">"quarantine_sales"</span>)</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">mssparkutils — Exit with Status</div>
+      <div class="card-desc">Return a value to the calling pipeline (e.g. row count or error flag).</div>
+      <pre><span class="cm"># Signal success with a row count</span>
+mssparkutils.<span class="op">notebook</span>.<span class="op">exit</span>(<span class="fn">str</span>(df.<span class="op">count</span>()))
+
+<span class="cm"># Signal structured result (pipeline reads this)</span>
+<span class="kw">import</span> json
+result = {<span class="st">"status"</span>: <span class="st">"success"</span>, <span class="st">"rows_written"</span>: df.<span class="op">count</span>()}
+mssparkutils.<span class="op">notebook</span>.<span class="op">exit</span>(json.<span class="op">dumps</span>(result))</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Spark Log Level Control</div>
+      <div class="card-desc">Reduce noise in notebook output during dev and set to WARN in prod.</div>
+      <pre><span class="cm"># Reduce verbose Spark output</span>
+spark.<span class="op">sparkContext</span>.<span class="op">setLogLevel</span>(<span class="st">"WARN"</span>)
+<span class="cm"># Options: ALL, DEBUG, INFO, WARN, ERROR, FATAL, OFF</span>
+
+<span class="cm"># Access the underlying Spark log4j logger</span>
+<span class="kw">log4j</span> = spark.<span class="op">_jvm</span>.<span class="op">org</span>.<span class="op">apache</span>.<span class="op">log4j</span>
+<span class="kw">logger</span> = log4j.<span class="cl">LogManager</span>.<span class="op">getLogger</span>(<span class="st">"myApp"</span>)
+<span class="kw">logger</span>.<span class="op">warn</span>(<span class="st">"This is a Spark log4j warning"</span>)</pre>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════ S5: SQL WAREHOUSE -->
+<section class="section s5" id="sql">
+  <div class="section-header">
+    <span class="section-number">05</span>
+    <h2>Querying Against SQL Warehouse</h2>
+  </div>
+
+  <div class="tip"><strong>Fabric Endpoints:</strong> The <strong>Lakehouse SQL Analytics Endpoint</strong> is <em>read-only</em>. Use the <strong>Warehouse TDS Endpoint</strong> (connection string from Fabric portal) for full read/write via pyodbc/sqlalchemy. The <code>AzureCliCredential</code> pattern below works in notebooks with your logged-in Fabric identity.</div>
+
+  <div class="grid">
+
+    <div class="card">
+      <div class="card-label">SparkSQL on Lakehouse Tables</div>
+      <div class="card-desc">Run SQL directly against Lakehouse Delta tables in the notebook.</div>
+      <pre><span class="cm"># Inline SQL — returns a DataFrame</span>
+<span class="kw">df</span> = spark.<span class="op">sql</span>(<span class="st">"""
+  SELECT region, SUM(amount) AS total
+  FROM   gold_sales
+  WHERE  status = 'COMPLETED'
+  GROUP  BY region
+  ORDER  BY total DESC
+"""</span>)
+df.<span class="op">show</span>()
+
+<span class="cm"># Register DataFrame as temp view for SQL reuse</span>
+df.<span class="op">createOrReplaceTempView</span>(<span class="st">"vw_sales"</span>)
+spark.<span class="op">sql</span>(<span class="st">"SELECT * FROM vw_sales LIMIT 5"</span>).<span class="op">show</span>()</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">pyodbc — Connect to Fabric Warehouse</div>
+      <div class="card-desc">ODBC connection using Azure CLI token auth (no passwords stored).</div>
+      <pre><span class="kw">import</span> pyodbc, struct
+<span class="kw">from</span> azure.identity <span class="kw">import</span> <span class="cl">AzureCliCredential</span>
+
+<span class="kw">SERVER</span>  = <span class="st">"&lt;workspace&gt;.datawarehouse.fabric.microsoft.com"</span>
+<span class="kw">DB</span>      = <span class="st">"MyWarehouse"</span>
+<span class="kw">DRIVER</span>  = <span class="st">"ODBC Driver 18 for SQL Server"</span>
+
+<span class="kw">cred</span>   = <span class="cl">AzureCliCredential</span>()
+<span class="kw">token</span>  = <span class="kw">cred</span>.<span class="op">get_token</span>(<span class="st">"https://database.windows.net/.default"</span>)
+<span class="kw">raw</span>    = <span class="fn">bytes</span>(token.token, <span class="st">"utf-16-le"</span>)
+<span class="kw">packed</span> = struct.<span class="op">pack</span>(<span class="st">"&lt;I"</span>, <span class="fn">len</span>(<span class="kw">raw</span>)) + <span class="kw">raw</span>
+
+<span class="kw">conn</span> = pyodbc.<span class="op">connect</span>(
+    <span class="st">f"DRIVER={{{DRIVER}}};SERVER={SERVER};"</span>
+    <span class="st">f"DATABASE={DB};Encrypt=yes"</span>,
+    attrs_before={<span class="nu">1256</span>: <span class="kw">packed</span>}
+)</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">pyodbc — Execute Queries</div>
+      <div class="card-desc">Run queries and load results into a Pandas or Spark DataFrame.</div>
+      <pre><span class="kw">import</span> pandas <span class="kw">as</span> pd
+
+<span class="kw">sql</span> = <span class="st">"""
+  SELECT TOP 100 order_id, amount, status
+  FROM   dbo.SalesOrders
+  WHERE  region = 'IN'
+"""</span>
+<span class="cm"># → Pandas</span>
+<span class="kw">pdf</span> = pd.<span class="op">read_sql</span>(<span class="kw">sql</span>, <span class="kw">conn</span>)
+
+<span class="cm"># → Spark DataFrame</span>
+<span class="kw">df</span> = spark.<span class="op">createDataFrame</span>(<span class="kw">pdf</span>)
+
+<span class="cm"># Execute DML (INSERT / UPDATE / EXEC)</span>
+<span class="kw">cursor</span> = <span class="kw">conn</span>.<span class="op">cursor</span>()
+<span class="kw">cursor</span>.<span class="op">execute</span>(<span class="st">"EXEC dbo.usp_RefreshSummary @run_date=?"</span>, run_date)
+<span class="kw">conn</span>.<span class="op">commit</span>()</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">JDBC — Read from External SQL Source</div>
+      <div class="card-desc">Pull data from Azure SQL DB or on-prem SQL Server into Spark.</div>
+      <pre><span class="kw">jdbc_url</span> = (
+    <span class="st">"jdbc:sqlserver://myserver.database.windows.net:1433;"</span>
+    <span class="st">"database=MyDB;encrypt=true;"</span>
+    <span class="st">"trustServerCertificate=false;"</span>
+    <span class="st">"loginTimeout=30;"</span>
+)
+<span class="kw">df</span> = spark.<span class="op">read</span>.<span class="op">format</span>(<span class="st">"jdbc"</span>) \
+    .<span class="op">option</span>(<span class="st">"url"</span>,         <span class="kw">jdbc_url</span>) \
+    .<span class="op">option</span>(<span class="st">"dbtable"</span>,    <span class="st">"dbo.SalesOrders"</span>) \
+    .<span class="op">option</span>(<span class="st">"user"</span>,       <span class="st">"myuser"</span>) \
+    .<span class="op">option</span>(<span class="st">"password"</span>,   dbutils.<span class="op">secrets</span>.<span class="op">get</span>(<span class="st">"kv"</span>, <span class="st">"sql-pwd"</span>)) \
+    .<span class="op">option</span>(<span class="st">"numPartitions"</span>, <span class="nu">4</span>) \
+    .<span class="op">load</span>()</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">DDL / DML via SparkSQL</div>
+      <div class="card-desc">Manage tables and schemas directly from the notebook.</div>
+      <pre><span class="cm"># Create schema (Lakehouse namespace)</span>
+spark.<span class="op">sql</span>(<span class="st">"CREATE SCHEMA IF NOT EXISTS gold"</span>)
+
+<span class="cm"># Describe a table</span>
+spark.<span class="op">sql</span>(<span class="st">"DESCRIBE EXTENDED gold.sales"</span>).<span class="op">show</span>(<span class="nu">50</span>, <span class="kw">False</span>)
+
+<span class="cm"># Truncate and reload</span>
+spark.<span class="op">sql</span>(<span class="st">"TRUNCATE TABLE gold.sales_stage"</span>)
+
+<span class="cm"># Show all tables in a schema</span>
+spark.<span class="op">sql</span>(<span class="st">"SHOW TABLES IN gold"</span>).<span class="op">show</span>()</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Parameterised SparkSQL</div>
+      <div class="card-desc">Safely inject Python variables into SQL strings.</div>
+      <pre><span class="kw">region</span>   = <span class="st">"IN"</span>
+<span class="kw">min_amt</span>  = <span class="nu">1000</span>
+
+<span class="cm"># f-string (fine for non-user input)</span>
+spark.<span class="op">sql</span>(<span class="st">f"""
+  SELECT * FROM gold_sales
+  WHERE  region = '{region}'
+  AND    amount >= {min_amt}
+"""</span>)
+
+<span class="cm"># Safer: use spark.sql with named args (Spark 3.4+)</span>
+spark.<span class="op">sql</span>(
+    <span class="st">"SELECT * FROM gold_sales WHERE region = :r"</span>,
+    args={<span class="st">"r"</span>: <span class="kw">region</span>}
+)</pre>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════ S6: PERFORMANCE -->
+<section class="section s6" id="perf">
+  <div class="section-header">
+    <span class="section-number">06</span>
+    <h2>Performance & Best Practices</h2>
+  </div>
+
+  <div class="grid">
+
+    <div class="card">
+      <div class="card-label">Caching & Persistence</div>
+      <div class="card-desc">Cache DataFrames that are reused multiple times in the same job.</div>
+      <pre><span class="cm"># Cache in memory (default MEMORY_AND_DISK)</span>
+df.<span class="op">cache</span>()
+df.<span class="op">count</span>()   <span class="cm"># triggers materialisation</span>
+
+<span class="cm"># Explicit storage level</span>
+<span class="kw">from</span> pyspark <span class="kw">import</span> <span class="cl">StorageLevel</span>
+df.<span class="op">persist</span>(<span class="cl">StorageLevel</span>.<span class="op">MEMORY_AND_DISK</span>)
+
+<span class="cm"># Always unpersist when done</span>
+df.<span class="op">unpersist</span>()</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Repartition & Coalesce</div>
+      <div class="card-desc">Control file count and partition size for writes.</div>
+      <pre><span class="cm"># Repartition (shuffle) — use before wide transforms</span>
+df.<span class="op">repartition</span>(<span class="nu">8</span>)
+df.<span class="op">repartition</span>(<span class="nu">8</span>, <span class="st">"region"</span>)  <span class="cm"># partition by column</span>
+
+<span class="cm"># Coalesce (no shuffle) — use to reduce partitions</span>
+df.<span class="op">coalesce</span>(<span class="nu">1</span>)  <span class="cm"># single output file (small tables only)</span>
+
+<span class="cm"># Check current partition count</span>
+df.<span class="op">rdd</span>.<span class="op">getNumPartitions</span>()</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Broadcast Join (Small Table)</div>
+      <div class="card-desc">Avoid shuffle by broadcasting a small lookup table to all workers.</div>
+      <pre><span class="kw">from</span> pyspark.<span class="op">sql</span>.<span class="op">functions</span> <span class="kw">import</span> <span class="fn">broadcast</span>
+
+<span class="cm"># dim table must fit in executor memory (~200 MB default)</span>
+<span class="kw">df_fact</span>.<span class="op">join</span>(
+    <span class="fn">broadcast</span>(<span class="kw">df_dim</span>),
+    on=<span class="st">"product_id"</span>,
+    how=<span class="st">"left"</span>
+)
+<span class="cm"># Tune threshold (bytes)</span>
+spark.<span class="op">conf</span>.<span class="op">set</span>(
+    <span class="st">"spark.sql.autoBroadcastJoinThreshold"</span>, <span class="nu">50</span> * <span class="nu">1024</span> * <span class="nu">1024</span>
+)</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Predicate Pushdown & Column Pruning</div>
+      <div class="card-desc">Let Spark/Delta skip files and read only needed columns.</div>
+      <pre><span class="cm"># Pushdown: filter before join/transform</span>
+<span class="kw">df_filtered</span> = df.<span class="op">filter</span>(F.<span class="op">col</span>(<span class="st">"region"</span>) == <span class="st">"IN"</span>)
+
+<span class="cm"># Column pruning: select only what you need</span>
+<span class="kw">df_slim</span> = df.<span class="op">select</span>(<span class="st">"order_id"</span>, <span class="st">"amount"</span>, <span class="st">"status"</span>)
+
+<span class="cm"># Check the execution plan</span>
+df_filtered.<span class="op">explain</span>(mode=<span class="st">"formatted"</span>)
+
+<span class="cm"># Check if pushdown happened</span>
+df_filtered.<span class="op">explain</span>(<span class="st">"extended"</span>)</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Spark Config Tuning</div>
+      <div class="card-desc">Runtime tuning tips relevant to Fabric Spark pools.</div>
+      <pre><span class="cm"># Adaptive Query Execution (on by default in Spark 3)</span>
+spark.<span class="op">conf</span>.<span class="op">set</span>(<span class="st">"spark.sql.adaptive.enabled"</span>, <span class="st">"true"</span>)
+
+<span class="cm"># Skew join optimisation</span>
+spark.<span class="op">conf</span>.<span class="op">set</span>(<span class="st">"spark.sql.adaptive.skewJoin.enabled"</span>, <span class="st">"true"</span>)
+
+<span class="cm"># Coalesce shuffle partitions automatically</span>
+spark.<span class="op">conf</span>.<span class="op">set</span>(<span class="st">"spark.sql.adaptive.coalescePartitions.enabled"</span>, <span class="st">"true"</span>)
+
+<span class="cm"># Shuffle partition count (default 200 — tune down for small data)</span>
+spark.<span class="op">conf</span>.<span class="op">set</span>(<span class="st">"spark.sql.shuffle.partitions"</span>, <span class="st">"64"</span>)</pre>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Schema — Define Explicitly</div>
+      <div class="card-desc">Avoid costly inferSchema scans on large source files.</div>
+      <pre><span class="kw">from</span> pyspark.<span class="op">sql</span>.<span class="op">types</span> <span class="kw">import</span> (
+    <span class="cl">StructType</span>, <span class="cl">StructField</span>,
+    <span class="cl">StringType</span>, <span class="cl">DoubleType</span>, <span class="cl">TimestampType</span>
+)
+<span class="kw">schema</span> = <span class="cl">StructType</span>([
+    <span class="cl">StructField</span>(<span class="st">"order_id"</span>,  <span class="cl">StringType</span>(),    nullable=<span class="kw">False</span>),
+    <span class="cl">StructField</span>(<span class="st">"amount"</span>,    <span class="cl">DoubleType</span>(),    nullable=<span class="kw">True</span>),
+    <span class="cl">StructField</span>(<span class="st">"created_at"</span>,<span class="cl">TimestampType</span>(), nullable=<span class="kw">True</span>),
+])
+<span class="kw">df</span> = spark.<span class="op">read</span>.<span class="op">schema</span>(<span class="kw">schema</span>).<span class="op">csv</span>(<span class="st">"Files/raw/"</span>)</pre>
+    </div>
+
+    <div class="card wide">
+      <div class="card-label">Execution Plan — Reading EXPLAIN Output</div>
+      <div class="card-desc">Know what to look for when optimising a slow query.</div>
+      <pre>df.<span class="op">explain</span>(mode=<span class="st">"formatted"</span>)
+<span class="cm"># Key things to look for in the plan:
+# ✅  FileScan with PushedFilters=[...] → predicate pushdown is working
+# ✅  BroadcastHashJoin           → small table was broadcast (no shuffle)
+# ⚠️  SortMergeJoin               → both sides shuffled (expensive, tune if large)
+# ⚠️  Exchange hashpartitioning   → a shuffle is happening (check necessity)
+# ⚠️  WholeStageCodeGen disabled  → code gen skipped, possible UDF bottleneck
+# 🔍  ColumnarToRow / RowToColumnar → format conversion overhead</span></pre>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  PySpark Cheat Sheet · Microsoft Fabric · Spark 3.x · Delta Lake · 2025
+</footer>
+
+</body>
+</html>
