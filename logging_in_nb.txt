@@ -1,0 +1,197 @@
+## Overall Architecture
+
+```
+Data Pipeline
+│
+├── Notebook Activity: nb_orders_load
+│     ├── [Success] → Log Activity (status = SUCCESS)
+│     └── [Failure] → Log Activity (status = FAILED) → Teams Alert
+│
+├── Notebook Activity: nb_transform_sales
+│     ├── [Success] → Log Activity (status = SUCCESS)
+│     └── [Failure] → Log Activity (status = FAILED) → Teams Alert
+│
+└── ... (repeat per notebook)
+```
+
+---
+
+## Component 1 — Notebook Exit Signal
+
+Each notebook should wrap its logic in a `try/except` and call `mssparkutils.notebook.exit()` with a structured JSON payload. The pipeline reads this as the notebook's output.
+
+```python
+import json
+from datetime import datetime
+
+notebook_name = "nb_orders_load"
+start_time = datetime.utcnow().isoformat()
+
+try:
+    # --- Your actual notebook logic here ---
+    # ...
+    # ------------------------------------
+
+    exit_payload = {
+        "notebook_name": notebook_name,
+        "status": "SUCCESS",
+        "start_time": start_time,
+        "end_time": datetime.utcnow().isoformat(),
+        "error_message": None
+    }
+
+except Exception as e:
+    exit_payload = {
+        "notebook_name": notebook_name,
+        "status": "FAILED",
+        "start_time": start_time,
+        "end_time": datetime.utcnow().isoformat(),
+        "error_message": str(e)
+    }
+    raise  # Re-raise so the pipeline activity marks it as FAILED
+
+finally:
+    mssparkutils.notebook.exit(json.dumps(exit_payload))
+```
+
+> The `raise` in the `except` block is critical — it lets the pipeline see the activity as **failed** so your failure branch triggers correctly.
+
+---
+
+## Component 2 — Warehouse Log Table
+
+Create this table once in your Fabric Warehouse:
+
+```sql
+CREATE TABLE dbo.notebook_execution_log (
+    log_id          BIGINT          IDENTITY(1,1) PRIMARY KEY,
+    pipeline_run_id VARCHAR(200)    NOT NULL,
+    notebook_name   VARCHAR(200)    NOT NULL,
+    status          VARCHAR(20)     NOT NULL,   -- SUCCESS | FAILED
+    start_time      DATETIME2       NULL,
+    end_time        DATETIME2       NULL,
+    duration_sec    INT             NULL,
+    error_message   VARCHAR(MAX)    NULL,
+    logged_at       DATETIME2       DEFAULT GETUTCDATE()
+);
+```
+
+---
+
+## Component 3 — Logging Notebook (`nb_log_execution`)
+
+Create a **single reusable logging notebook** that accepts parameters and writes to the warehouse. The pipeline calls this after every notebook (success or failure branch).
+
+```python
+# Parameters cell (toggle as Parameter cell in Fabric)
+pipeline_run_id = ""
+notebook_name   = ""
+status          = ""
+start_time      = ""
+end_time        = ""
+error_message   = ""
+```
+
+```python
+import pyodbc, struct
+from azure.identity import ManagedIdentityCredential
+from datetime import datetime
+
+# Warehouse SQL endpoint
+server   = "<your-workspace>.datawarehouse.fabric.microsoft.com"
+database = "<your-warehouse-name>"
+
+credential = ManagedIdentityCredential()
+token      = credential.get_token("https://analysis.windows.net/powerbi/api/.default")
+token_bytes = token.token.encode("utf-16-le")
+token_struct = struct.pack(f"<I{len(token_bytes)}s", len(token_bytes), token_bytes)
+
+conn_str = (
+    f"DRIVER={{ODBC Driver 18 for SQL Server}};"
+    f"SERVER={server};DATABASE={database};Encrypt=yes;TrustServerCertificate=no"
+)
+
+conn   = pyodbc.connect(conn_str, attrs_before={1256: token_struct})
+cursor = conn.cursor()
+
+# Compute duration
+try:
+    fmt = "%Y-%m-%dT%H:%M:%S.%f"
+    dur = int((datetime.fromisoformat(end_time) - datetime.fromisoformat(start_time)).total_seconds())
+except:
+    dur = None
+
+cursor.execute("""
+    INSERT INTO dbo.notebook_execution_log
+        (pipeline_run_id, notebook_name, status, start_time, end_time, duration_sec, error_message)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+""", pipeline_run_id, notebook_name, status, start_time, end_time, dur, error_message or None)
+
+conn.commit()
+conn.close()
+```
+
+---
+
+## Component 4 — Pipeline Wiring
+
+In the Data Pipeline, for each notebook activity:
+
+**Success branch → Call `nb_log_execution` with:**
+| Parameter | Value |
+|---|---|
+| `pipeline_run_id` | `@pipeline().RunId` |
+| `notebook_name` | `nb_orders_load` |
+| `status` | `SUCCESS` |
+| `start_time` | from notebook exit JSON |
+| `end_time` | from notebook exit JSON |
+| `error_message` | *(blank)* |
+
+**Failure branch → Call `nb_log_execution` + a Web Activity for Teams:**
+| Parameter | Value |
+|---|---|
+| `status` | `FAILED` |
+| `error_message` | `@activity('nb_orders_load').error.message` |
+
+---
+
+## Component 5 — Teams Notification (Web Activity)
+
+1. In Teams, create an **Incoming Webhook** on your channel and copy the URL.
+2. In the pipeline's failure branch, add a **Web Activity** after the log notebook:
+
+| Field | Value |
+|---|---|
+| URL | Your Teams Incoming Webhook URL |
+| Method | POST |
+| Body | See below |
+
+```json
+{
+  "@type": "MessageCard",
+  "@context": "https://schema.org/extensions",
+  "summary": "Notebook Failure Alert",
+  "themeColor": "FF0000",
+  "title": "❌ Notebook Failed in Fabric Pipeline",
+  "sections": [{
+    "facts": [
+      { "name": "Pipeline Run ID", "value": "@{pipeline().RunId}" },
+      { "name": "Notebook",        "value": "nb_orders_load" },
+      { "name": "Error",           "value": "@{activity('nb_orders_load').error.message}" },
+      { "name": "Time (UTC)",      "value": "@{utcNow()}" }
+    ]
+  }]
+}
+```
+
+---
+
+## Summary of Moving Parts
+
+| Component | What it does |
+|---|---|
+| Each notebook | Wraps logic in try/except, exits with JSON status |
+| `nb_log_execution` | Reusable parameterized notebook, writes to Warehouse |
+| `notebook_execution_log` | Warehouse table, single source of truth for all runs |
+| Web Activity (Teams) | Fires on failure branch, posts card to your channel |
+| Pipeline branches | `runAfter` success/failure conditions wire it all together |
