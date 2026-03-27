@@ -8,6 +8,7 @@ Local PySpark Development
 https://www.linkedin.com/pulse/pyspark-setup-local-fabric-developemnt-s%C3%A6bo-davtians-ezaqe/
 https://github.com/djouallah/Fabric_Notebooks_Demo/blob/main/aemo_duckdb/Electricity_5_Minutes.ipynb
 https://christianhenrikreich.medium.com/microsoft-fabric-diving-into-lakehouse-access-from-local-machines-and-other-remotes-with-delta-rs-79faa6cf1fdf
+https://medium.com/@mariusz_kujawski/connect-to-microsoft-fabric-warehouse-using-python-and-sqlalchemy-1e1179855037
 
 Apache Airflow in Fabric
 
